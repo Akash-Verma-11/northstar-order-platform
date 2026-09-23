@@ -1,0 +1,20 @@
+stages: [test, security, build]
+test:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install -r backend/requirements.txt pytest
+    - PYTHONPATH=backend pytest -q backend/tests
+security:
+  stage: security
+  image: aquasec/trivy:0.66.0
+  script:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+build:
+  stage: build
+  image: docker:28
+  services: [docker:28-dind]
+  script:
+    - docker build -t northstar-api:$CI_COMMIT_SHA backend
+    - docker build -t northstar-worker:$CI_COMMIT_SHA worker
+    - docker build -t northstar-frontend:$CI_COMMIT_SHA frontend

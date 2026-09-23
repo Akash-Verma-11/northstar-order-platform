@@ -1,0 +1,11 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: order-api
+  namespace: northstar
+spec:
+  selector:
+    matchLabels: {app: order-api}
+  endpoints:
+  - port: http
+    path: /metrics

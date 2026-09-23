@@ -1,0 +1,14 @@
+api:
+  image: ghcr.io/REPLACE_ME/northstar-api
+  tag: "1.0.0"
+  replicas: 2
+frontend:
+  image: ghcr.io/REPLACE_ME/northstar-frontend
+  tag: "1.0.0"
+  replicas: 2
+worker:
+  image: ghcr.io/REPLACE_ME/northstar-worker
+  tag: "1.0.0"
+  replicas: 2
+ingress:
+  host: orders.example.com

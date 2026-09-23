@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: northstar-alerts
+  namespace: northstar
+spec:
+  groups:
+  - name: northstar
+    rules:
+    - alert: OrderApiDown
+      expr: up{job="order-api"} == 0
+      for: 2m
+      labels: {severity: critical}
+      annotations:
+        summary: Order API is down
+        description: Prometheus cannot scrape the order API.
+    - alert: HighPodRestartRate
+      expr: increase(kube_pod_container_status_restarts_total{namespace="northstar"}[10m]) > 3
+      for: 5m
+      labels: {severity: warning}
+      annotations:
+        summary: Pod restart rate is elevated

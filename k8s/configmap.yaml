@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: order-api-config, namespace: northstar}
+data:
+  DB_HOST: postgres
+  DB_NAME: orders
+  DB_USER: app
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: order-db-secret, namespace: northstar}
+type: Opaque
+stringData:
+  password: app

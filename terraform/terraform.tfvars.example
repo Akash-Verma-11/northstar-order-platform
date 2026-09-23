@@ -1,0 +1,4 @@
+aws_region = "ap-south-1"
+project = "northstar"
+environment = "prod"
+db_password = "REPLACE_WITH_A_SECRET"

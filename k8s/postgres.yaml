@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: postgres, namespace: northstar}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: postgres}}
+  template:
+    metadata: {labels: {app: postgres}}
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:17-alpine
+        ports: [{containerPort: 5432}]
+        env:
+        - {name: POSTGRES_DB, value: orders}
+        - {name: POSTGRES_USER, value: app}
+        - {name: POSTGRES_PASSWORD, valueFrom: {secretKeyRef: {name: order-db-secret, key: password}}}
+        readinessProbe: {exec: {command: ["pg_isready","-U","app","-d","orders"]}, initialDelaySeconds: 5, periodSeconds: 5}
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: postgres, namespace: northstar}
+spec:
+  selector: {app: postgres}
+  ports: [{port: 5432, targetPort: 5432}]

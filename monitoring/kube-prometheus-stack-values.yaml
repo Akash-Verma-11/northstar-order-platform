@@ -1,0 +1,9 @@
+grafana:
+  enabled: true
+  adminPassword: CHANGE_ME
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    serviceMonitorSelectorNilUsesHelmValues: false
+alertmanager:
+  enabled: true

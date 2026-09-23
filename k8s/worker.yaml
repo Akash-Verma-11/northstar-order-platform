@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: order-worker, namespace: northstar}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: order-worker}}
+  template:
+    metadata: {labels: {app: order-worker}}
+    spec:
+      containers:
+      - name: worker
+        image: ghcr.io/example/northstar-worker:latest
+        env:
+        - {name: DATABASE_URL, value: postgresql://app:app@postgres:5432/orders}
+        resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}

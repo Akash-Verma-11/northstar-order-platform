@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: {{ include "northstar.fullname" . }}-api}
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector: {matchLabels: {app: northstar-api}}
+  template:
+    metadata: {labels: {app: northstar-api}}
+    spec:
+      containers:
+      - name: api
+        image: "{{ .Values.api.image }}:{{ .Values.api.tag }}"
+        ports: [{containerPort: 8080}]
+        env:
+        - {name: DATABASE_URL, value: "postgresql+psycopg://app:app@postgres:5432/orders"}
+        readinessProbe: {httpGet: {path: /api/ready, port: 8080}, initialDelaySeconds: 10}
+        livenessProbe: {httpGet: {path: /api/health, port: 8080}, initialDelaySeconds: 15}
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: northstar-api}
+spec:
+  selector: {app: northstar-api}
+  ports: [{port: 8080, targetPort: 8080}]

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: order-api, namespace: northstar}
+spec:
+  replicas: 2
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: order-api}}
+  template:
+    metadata:
+      labels: {app: order-api}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/path: "/metrics", prometheus.io/port: "8080"}
+    spec:
+      containers:
+      - name: api
+        image: ghcr.io/example/northstar-api:latest
+        ports: [{containerPort: 8080}]
+        env:
+        - {name: DATABASE_URL, value: postgresql+psycopg://app:app@postgres:5432/orders}
+        readinessProbe: {httpGet: {path: /api/ready, port: 8080}, initialDelaySeconds: 10, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /api/health, port: 8080}, initialDelaySeconds: 15, periodSeconds: 10}
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: order-api, namespace: northstar}
+spec:
+  selector: {app: order-api}
+  ports: [{port: 8080, targetPort: 8080}]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: order-api, namespace: northstar}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: order-api}
+  minReplicas: 2
+  maxReplicas: 8
+  behavior:
+    scaleDown: {stabilizationWindowSeconds: 300}
+  metrics:
+  - type: Resource
+    resource: {name: cpu, target: {type: Utilization, averageUtilization: 65}}

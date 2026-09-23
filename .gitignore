@@ -1,0 +1,10 @@
+.env
+*.tfvars
+.terraform/
+terraform.tfstate*
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+.vscode/
+.DS_Store

@@ -1,0 +1,5 @@
+- name: Configure application hosts
+  hosts: web
+  become: true
+  roles:
+    - docker

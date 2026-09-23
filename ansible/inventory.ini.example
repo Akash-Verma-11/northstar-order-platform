@@ -1,0 +1,2 @@
+[web]
+10.0.10.20 ansible_user=ubuntu
