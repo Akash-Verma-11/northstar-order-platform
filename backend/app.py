@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from prometheus_client import CollectorRegistry
 from prometheus_flask_exporter import PrometheusMetrics
 
 db = SQLAlchemy()
@@ -38,7 +39,7 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
     CORS(app)
-    metrics = PrometheusMetrics(app, path="/metrics")
+    metrics = PrometheusMetrics(app, path="/metrics", registry=CollectorRegistry())
     metrics.info("order_api_info", "Order API information", version="1.0.0")
 
     @app.get("/api/health")
