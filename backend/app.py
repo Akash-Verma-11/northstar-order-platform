@@ -8,6 +8,27 @@ from prometheus_flask_exporter import PrometheusMetrics
 
 db = SQLAlchemy()
 
+
+class Order(db.Model):
+    __tablename__ = "orders"
+    id = db.Column(db.Integer, primary_key=True)
+    customer = db.Column(db.String(120), nullable=False)
+    product = db.Column(db.String(160), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(30), nullable=False, default="CREATED")
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "customer": self.customer,
+            "product": self.product,
+            "quantity": self.quantity,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 def create_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
@@ -19,25 +40,6 @@ def create_app():
     CORS(app)
     metrics = PrometheusMetrics(app, path="/metrics")
     metrics.info("order_api_info", "Order API information", version="1.0.0")
-
-    class Order(db.Model):
-        __tablename__ = "orders"
-        id = db.Column(db.Integer, primary_key=True)
-        customer = db.Column(db.String(120), nullable=False)
-        product = db.Column(db.String(160), nullable=False)
-        quantity = db.Column(db.Integer, nullable=False)
-        status = db.Column(db.String(30), nullable=False, default="CREATED")
-        created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-        def as_dict(self):
-            return {
-                "id": self.id,
-                "customer": self.customer,
-                "product": self.product,
-                "quantity": self.quantity,
-                "status": self.status,
-                "created_at": self.created_at.isoformat() if self.created_at else None,
-            }
 
     @app.get("/api/health")
     def health():
@@ -106,10 +108,8 @@ def create_app():
         ).mappings().all()
         return jsonify({r["status"]: r["count"] for r in rows})
 
-    with app.app_context():
-        db.create_all()
-
     return app
+
 
 app = create_app()
 
