@@ -1,3 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: postgres-pvc, namespace: northstar}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: postgres, namespace: northstar}
@@ -15,8 +24,14 @@ spec:
         - {name: POSTGRES_DB, value: orders}
         - {name: POSTGRES_USER, value: app}
         - {name: POSTGRES_PASSWORD, valueFrom: {secretKeyRef: {name: order-db-secret, key: password}}}
+        - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+        volumeMounts:
+        - {name: postgres-storage, mountPath: /var/lib/postgresql/data}
         readinessProbe: {exec: {command: ["pg_isready","-U","app","-d","orders"]}, initialDelaySeconds: 5, periodSeconds: 5}
         resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim: {claimName: postgres-pvc}
 ---
 apiVersion: v1
 kind: Service
