@@ -1,9 +1,32 @@
 grafana:
   enabled: true
-  adminPassword: CHANGE_ME
+  adminPassword: northstar-admin-2026
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {cpu: 500m, memory: 512Mi}
+  startupProbe:
+    httpGet: {path: /api/health, port: 3000}
+    failureThreshold: 30
+    periodSeconds: 10
+  livenessProbe:
+    httpGet: {path: /api/health, port: 3000}
+    periodSeconds: 10
+  readinessProbe:
+    httpGet: {path: /api/health, port: 3000}
+    periodSeconds: 10
+
 prometheus:
   prometheusSpec:
     retention: 15d
     serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+
 alertmanager:
   enabled: true
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 25m, memory: 64Mi}
+      limits: {cpu: 100m, memory: 128Mi}
