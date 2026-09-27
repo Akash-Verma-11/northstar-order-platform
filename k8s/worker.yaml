@@ -9,7 +9,8 @@ spec:
     spec:
       containers:
       - name: worker
-        image: ghcr.io/example/northstar-worker:latest
+        image: northstar-order-platform-worker:latest
+        imagePullPolicy: IfNotPresent
         env:
         - {name: DATABASE_URL, value: postgresql://app:app@postgres:5432/orders}
         resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}

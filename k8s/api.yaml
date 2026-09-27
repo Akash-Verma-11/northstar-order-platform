@@ -12,12 +12,21 @@ spec:
     spec:
       containers:
       - name: api
-        image: ghcr.io/example/northstar-api:latest
+        image: northstar-order-platform-order-api:latest
+        imagePullPolicy: IfNotPresent
         ports: [{containerPort: 8080}]
         env:
         - {name: DATABASE_URL, value: postgresql+psycopg://app:app@postgres:5432/orders}
-        readinessProbe: {httpGet: {path: /api/ready, port: 8080}, initialDelaySeconds: 10, periodSeconds: 5}
-        livenessProbe: {httpGet: {path: /api/health, port: 8080}, initialDelaySeconds: 15, periodSeconds: 10}
+        startupProbe:
+          httpGet: {path: /api/health, port: 8080}
+          failureThreshold: 30
+          periodSeconds: 5
+        readinessProbe:
+          httpGet: {path: /api/ready, port: 8080}
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: {path: /api/health, port: 8080}
+          periodSeconds: 10
         resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
 ---
 apiVersion: v1

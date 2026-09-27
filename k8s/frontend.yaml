@@ -9,7 +9,8 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ghcr.io/example/northstar-frontend:latest
+        image: northstar-order-platform-frontend:latest
+        imagePullPolicy: IfNotPresent
         ports: [{containerPort: 80}]
         readinessProbe: {httpGet: {path: /, port: 80}, initialDelaySeconds: 5}
         resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
@@ -21,19 +22,42 @@ spec:
   selector: {app: frontend}
   ports: [{port: 80, targetPort: 80}]
 ---
+
+# for AWS- EKS
+
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: northstar
+#   namespace: northstar
+#   annotations:
+#     alb.ingress.kubernetes.io/scheme: internet-facing
+#     alb.ingress.kubernetes.io/target-type: ip
+#     alb.ingress.kubernetes.io/healthcheck-path: /
+# spec:
+#   ingressClassName: alb
+#   rules:
+#   - host: orders.example.com
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend: {service: {name: frontend, port: {number: 80}}}
+
+
+#for local
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: northstar
   namespace: northstar
   annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: alb
+  ingressClassName: nginx
   rules:
-  - host: orders.example.com
+  - host: orders.local
     http:
       paths:
       - path: /
