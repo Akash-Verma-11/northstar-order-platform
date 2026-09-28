@@ -1,14 +1,27 @@
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
 api:
   image: ghcr.io/REPLACE_ME/northstar-api
   tag: "1.0.0"
   replicas: 2
+  resources:
+    requests: {cpu: 200m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 512Mi}
 frontend:
   image: ghcr.io/REPLACE_ME/northstar-frontend
   tag: "1.0.0"
   replicas: 2
+  resources:
+    requests: {cpu: 50m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 128Mi}
 worker:
   image: ghcr.io/REPLACE_ME/northstar-worker
   tag: "1.0.0"
   replicas: 2
 ingress:
+  className: nginx      # use "nginx" for Minikube,  use "alb" for load balancer
   host: orders.example.com
