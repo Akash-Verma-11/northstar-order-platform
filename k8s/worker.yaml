@@ -13,4 +13,9 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - {name: DATABASE_URL, value: postgresql://app:app@postgres:5432/orders}
+        livenessProbe:
+          exec: {command: ["pgrep", "-f", "worker"]}
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
