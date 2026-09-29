@@ -1,6 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: {{ include "northstar.fullname" . }}-frontend}
+metadata:
+  name: {{ include "northstar.fullname" . }}-frontend
+  namespace: {{ .Values.namespace }}
 spec:
   replicas: {{ .Values.frontend.replicas }}
   selector: {matchLabels: {app: northstar-frontend}}
@@ -10,33 +12,38 @@ spec:
       containers:
       - name: frontend
         image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
+        imagePullPolicy: {{ .Values.frontend.pullPolicy }}
         ports: [{containerPort: 80}]
-      resources:
-        {{- toYaml .Values.frontend.resources | nindent 10 }}
-      readinessProbe:
-        httpGet: {path: /, port: 80}
-        periodSeconds: 10
+        readinessProbe: {httpGet: {path: /, port: 80}, initialDelaySeconds: 5}
+        resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: northstar-frontend}
+metadata:
+  name: frontend
+  namespace: {{ .Values.namespace }}
 spec:
   selector: {app: northstar-frontend}
-  ports: [{port: 80, targetPort: 80}]
+  ports: [{name: http, port: 80, targetPort: 80}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: northstar
+  namespace: {{ .Values.namespace }}
   annotations:
+    {{- if .Values.ingress.local }}
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    {{- else }}
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    {{- end }}
 spec:
-  ingressClassName: alb
+  ingressClassName: {{ .Values.ingress.className }}
   rules:
   - host: {{ .Values.ingress.host }}
     http:
       paths:
       - path: /
         pathType: Prefix
-        backend: {service: {name: northstar-frontend, port: {number: 80}}}
+        backend: {service: {name: frontend, port: {number: 80}}}

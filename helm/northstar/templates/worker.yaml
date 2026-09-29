@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "northstar.fullname" . }}-worker
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector: {matchLabels: {app: northstar-worker}}
+  template:
+    metadata: {labels: {app: northstar-worker}}
+    spec:
+      containers:
+      - name: worker
+        image: "{{ .Values.worker.image }}:{{ .Values.worker.tag }}"
+        imagePullPolicy: {{ .Values.worker.pullPolicy }}
+        env:
+        - {name: DATABASE_URL, value: "postgresql://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres:5432/{{ .Values.postgres.dbName }}"}
+        resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}

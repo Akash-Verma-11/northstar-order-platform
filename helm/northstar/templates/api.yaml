@@ -1,40 +1,41 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: {{ include "northstar.fullname" . }}-api}
+metadata:
+  name: {{ include "northstar.fullname" . }}-api
+  namespace: {{ .Values.namespace }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.api.replicas }}
-  {{- end }}
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
   selector: {matchLabels: {app: northstar-api}}
   template:
-    metadata: {labels: {app: northstar-api}}
+    metadata:
+      labels: {app: northstar-api}
+      annotations: {prometheus.io/scrape: "true", prometheus.io/path: "/metrics", prometheus.io/port: "8080"}
     spec:
       containers:
       - name: api
         image: "{{ .Values.api.image }}:{{ .Values.api.tag }}"
+        imagePullPolicy: {{ .Values.api.pullPolicy }}
         ports: [{containerPort: 8080}]
         env:
-        - {name: DATABASE_URL, value: "postgresql+psycopg://app:app@postgres:5432/orders"}
+        - {name: DATABASE_URL, value: "postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres:5432/{{ .Values.postgres.dbName }}"}
         startupProbe:
           httpGet: {path: /api/health, port: 8080}
+          failureThreshold: 30
           periodSeconds: 5
-          failureThreshold: 30      # up to 150s to boot
         readinessProbe:
           httpGet: {path: /api/ready, port: 8080}
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
+          periodSeconds: 5
         livenessProbe:
           httpGet: {path: /api/health, port: 8080}
-          periodSeconds: 15
-          timeoutSeconds: 5
-          failureThreshold: 4
-        resources:
-          {{- toYaml .Values.api.resources | nindent 10 }}
+          periodSeconds: 10
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: northstar-api}
+metadata:
+  name: order-api
+  namespace: {{ .Values.namespace }}
 spec:
   selector: {app: northstar-api}
-  ports: [{port: 8080, targetPort: 8080}]
+  ports: [{name: http, port: 8080, targetPort: 8080}]
