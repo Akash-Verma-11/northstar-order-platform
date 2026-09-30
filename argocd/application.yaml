@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/REPLACE_ME/northstar-devops-platform.git
+    repoURL: https://github.com/Akash-Verma-11/northstar-order-platform.git
     targetRevision: main
     path: helm/northstar
     helm:
