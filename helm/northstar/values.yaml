@@ -10,7 +10,7 @@ frontend:
   image: northstar-order-platform-frontend
   tag: "latest"
   pullPolicy: IfNotPresent
-  replicas: 2
+  replicas: 3
 
 worker:
   image: northstar-order-platform-worker
