@@ -10,6 +10,7 @@ spec:
     targetRevision: main
     path: helm/northstar
     helm:
+      releaseName: northstar
       valueFiles: [values.yaml]
   destination:
     server: https://kubernetes.default.svc
