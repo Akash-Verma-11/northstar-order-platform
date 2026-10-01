@@ -84,3 +84,4 @@ jobs:
         git add helm/northstar/values.yaml
         git commit -m "chore: bump image tags to ${{ github.sha }} [skip ci]" || echo "No changes to commit"
         git push
+        
