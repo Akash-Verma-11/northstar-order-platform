@@ -1,0 +1,18 @@
+# util-linux family — mount/privilege CVEs, no fix available upstream.
+# Container runs as non-root (USER 10001), no privileged mode, no mount capabilities.
+CVE-2026-76642
+CVE-2026-78408
+CVE-2026-78409
+CVE-2026-78410
+
+# libacl1 — symlink traversal via libacl, no fix available. Not exercised by this app.
+CVE-2026-54369
+
+# libsystemd0/libudev1 — systemd-homed local privesc, no fix. systemd-homed not used.
+CVE-2026-16742
+
+# ncurses — buffer overflow, no fix. Base-image dependency, not invoked by the app.
+CVE-2025-69720
+
+# perl — Archive::Tar DoS, fix deferred upstream. Perl not used by this app.
+CVE-2026-9538
