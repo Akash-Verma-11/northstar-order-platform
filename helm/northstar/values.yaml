@@ -1,23 +1,19 @@
 namespace: northstar
-
 api:
-  image: northstar-order-platform-order-api
-  tag: "latest"
+  image: ghcr.io/akash-verma-11/northstar-api
+  tag: "eddf7cd8776a825390353c68c2feb4bde7f27fb8"
   pullPolicy: IfNotPresent
   replicas: 2
-
 frontend:
-  image: northstar-order-platform-frontend
-  tag: "latest"
+  image: ghcr.io/akash-verma-11/northstar-frontend
+  tag: "eddf7cd8776a825390353c68c2feb4bde7f27fb8"
   pullPolicy: IfNotPresent
   replicas: 2
-
 worker:
-  image: northstar-order-platform-worker
-  tag: "latest"
+  image: ghcr.io/akash-verma-11/northstar-worker
+  tag: "eddf7cd8776a825390353c68c2feb4bde7f27fb8"
   pullPolicy: IfNotPresent
   replicas: 2
-
 postgres:
   image: postgres
   tag: "17-alpine"
@@ -25,13 +21,11 @@ postgres:
   password: app
   dbName: orders
   storageSize: 1Gi
-
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 8
   targetCPUUtilizationPercentage: 65
-
 ingress:
   host: orders.local
   className: nginx
