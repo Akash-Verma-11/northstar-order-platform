@@ -11,20 +11,25 @@ jobs:
       contents: write
       packages: write
     steps:
+    # Use a PAT if main is protected, otherwise GITHUB_TOKEN is fine
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0   # full history, needed for SonarQube's new-code/blame analysis
+        fetch-depth: 0
+        # token: ${{ secrets.PAT_TOKEN }} # Uncomment if main is a protected branch
 
     - uses: actions/setup-python@v5
-      with: {python-version: "3.12"}
+      with: 
+        python-version: "3.12"
+        cache: 'pip' # Speeds up backend test step
 
     - name: Backend tests
       run: |
         python -m pip install -r backend/requirements.txt pytest
         PYTHONPATH=backend pytest -q backend/tests
 
+    # Corrected to v4
     - name: SonarQube
-      uses: SonarSource/sonarqube-scan-action@v6
+      uses: SonarSource/sonarqube-scan-action@v4
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -35,8 +40,9 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+    # Corrected action version to master (or pin to latest stable like 0.28.0)
     - name: Trivy filesystem scan
-      uses: aquasecurity/trivy-action@v0.36.0
+      uses: aquasecurity/trivy-action@master
       with:
         scan-type: fs
         scan-ref: .
@@ -49,12 +55,30 @@ jobs:
         docker build -t northstar-worker:${{ github.sha }} worker
         docker build -t northstar-frontend:${{ github.sha }} frontend
 
-    - name: Trivy image scan
-      uses: aquasecurity/trivy-action@v0.36.0
+    # Scans all images before proceeding
+    - name: Trivy image scan - API
+      uses: aquasecurity/trivy-action@master
       with:
         image-ref: northstar-api:${{ github.sha }}
         severity: CRITICAL,HIGH
         exit-code: "1"
+
+    - name: Trivy image scan - Worker
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: northstar-worker:${{ github.sha }}
+        severity: CRITICAL,HIGH
+        exit-code: "1"
+
+    - name: Trivy image scan - Frontend
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: northstar-frontend:${{ github.sha }}
+        severity: CRITICAL,HIGH
+        exit-code: "1"
+
+    - name: Set lowercase repo owner
+      run: echo "REPO_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
     - name: Log in to GHCR
       if: github.ref == 'refs/heads/main'
@@ -68,8 +92,8 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         for svc in api worker frontend; do
-          docker tag northstar-$svc:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/northstar-$svc:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/northstar-$svc:${{ github.sha }}
+          docker tag northstar-$svc:${{ github.sha }} ghcr.io/${{ env.REPO_OWNER }}/northstar-$svc:${{ github.sha }}
+          docker push ghcr.io/${{ env.REPO_OWNER }}/northstar-$svc:${{ github.sha }}
         done
 
     - name: Update Helm values with new image tags
@@ -78,17 +102,20 @@ jobs:
         sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
         sudo chmod +x /usr/local/bin/yq
 
-        yq -i '.api.image = "ghcr.io/${{ github.repository_owner }}/northstar-api"' helm/northstar/values.yaml
+        yq -i '.api.image = "ghcr.io/${{ env.REPO_OWNER }}/northstar-api"' helm/northstar/values.yaml
         yq -i '.api.tag = "${{ github.sha }}"' helm/northstar/values.yaml
 
-        yq -i '.worker.image = "ghcr.io/${{ github.repository_owner }}/northstar-worker"' helm/northstar/values.yaml
+        yq -i '.worker.image = "ghcr.io/${{ env.REPO_OWNER }}/northstar-worker"' helm/northstar/values.yaml
         yq -i '.worker.tag = "${{ github.sha }}"' helm/northstar/values.yaml
 
-        yq -i '.frontend.image = "ghcr.io/${{ github.repository_owner }}/northstar-frontend"' helm/northstar/values.yaml
+        yq -i '.frontend.image = "ghcr.io/${{ env.REPO_OWNER }}/northstar-frontend"' helm/northstar/values.yaml
         yq -i '.frontend.tag = "${{ github.sha }}"' helm/northstar/values.yaml
 
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add helm/northstar/values.yaml
         git commit -m "chore: bump image tags to ${{ github.sha }} [skip ci]" || echo "No changes to commit"
+        
+        # Prevent race conditions by rebasing just before pushing
+        git pull --rebase origin main
         git push
