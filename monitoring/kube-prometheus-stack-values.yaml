@@ -22,13 +22,13 @@ grafana:
 
 prometheus:
   prometheusSpec:
-    retention: 6h
-    retentionSize: "500MB"
+    retention: 2h
+    retentionSize: "250MB"
     serviceMonitorSelectorNilUsesHelmValues: false
     serviceMonitorNamespaceSelector: {}
     resources:
-      requests: {cpu: 100m, memory: 256Mi}
-      limits: {cpu: 500m, memory: 512Mi}
+      requests: {cpu: 100m, memory: 200Mi}
+      limits: {cpu: 400m, memory: 400Mi}
 
 alertmanager:
   enabled: true
