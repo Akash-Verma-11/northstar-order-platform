@@ -6,15 +6,15 @@ grafana:
     passwordKey: admin-password
   resources:
     requests: {cpu: 50m, memory: 128Mi}
-    limits: {cpu: 200m, memory: 256Mi}
+    limits: {cpu: 300m, memory: 384Mi}
   sidecar:
     dashboards:
-      enabled: false       # no custom dashboards provisioned yet — cuts a whole sidecar container
+      enabled: false
     datasources:
-      enabled: true        # keep — needed for Prometheus datasource wiring
+      enabled: true
   startupProbe:
     httpGet: {path: /api/health, port: 3000}
-    failureThreshold: 30
+    failureThreshold: 60      # 60 × 10s = 10 minutes, up from 5
     periodSeconds: 10
   livenessProbe:
     httpGet: {path: /api/health, port: 3000}
