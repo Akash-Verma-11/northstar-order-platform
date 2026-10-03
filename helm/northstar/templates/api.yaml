@@ -18,18 +18,25 @@ spec:
         imagePullPolicy: {{ .Values.api.pullPolicy }}
         ports: [{containerPort: 8080}]
         env:
-        - {name: DATABASE_URL, value: "postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres:5432/{{ .Values.postgres.dbName }}"}
+        - {name: DB_USER, value: {{ .Values.postgres.user | quote }}}
+        - {name: DB_NAME, value: {{ .Values.postgres.dbName | quote }}}
+        - {name: DB_PASSWORD, valueFrom: {secretKeyRef: {name: order-db-secret, key: password}}}
+        - {name: DATABASE_URL, value: "postgresql+psycopg://$(DB_USER):$(DB_PASSWORD)@postgres:5432/$(DB_NAME)"}
         startupProbe:
           httpGet: {path: /api/health, port: 8080}
           failureThreshold: 30
           periodSeconds: 5
         readinessProbe:
           httpGet: {path: /api/ready, port: 8080}
-          periodSeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         livenessProbe:
           httpGet: {path: /api/health, port: 8080}
-          periodSeconds: 10
-        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 4
+        resources: {requests: {cpu: 200m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
 ---
 apiVersion: v1
 kind: Service

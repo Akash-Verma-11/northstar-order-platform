@@ -14,5 +14,13 @@ spec:
         image: "{{ .Values.worker.image }}:{{ .Values.worker.tag }}"
         imagePullPolicy: {{ .Values.worker.pullPolicy }}
         env:
-        - {name: DATABASE_URL, value: "postgresql://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres:5432/{{ .Values.postgres.dbName }}"}
+        - {name: DB_USER, value: {{ .Values.postgres.user | quote }}}
+        - {name: DB_NAME, value: {{ .Values.postgres.dbName | quote }}}
+        - {name: DB_PASSWORD, valueFrom: {secretKeyRef: {name: order-db-secret, key: password}}}
+        - {name: DATABASE_URL, value: "postgresql://$(DB_USER):$(DB_PASSWORD)@postgres:5432/$(DB_NAME)"}
+        livenessProbe:
+          exec: {command: ["pgrep", "-f", "worker.py"]}
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 250m, memory: 256Mi}}

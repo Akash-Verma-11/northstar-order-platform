@@ -40,7 +40,19 @@ spec:
         - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
         volumeMounts:
         - {name: postgres-storage, mountPath: /var/lib/postgresql/data}
-        readinessProbe: {exec: {command: ["pg_isready","-U","{{ .Values.postgres.user }}","-d","{{ .Values.postgres.dbName }}"]}, initialDelaySeconds: 5, periodSeconds: 5}
+        startupProbe:
+          exec: {command: ["pg_isready","-U","{{ .Values.postgres.user }}","-d","{{ .Values.postgres.dbName }}"]}
+          periodSeconds: 5
+          failureThreshold: 30
+        readinessProbe:
+          exec: {command: ["pg_isready","-U","{{ .Values.postgres.user }}","-d","{{ .Values.postgres.dbName }}"]}
+          periodSeconds: 5
+          timeoutSeconds: 3
+        livenessProbe:
+          exec: {command: ["pg_isready","-U","{{ .Values.postgres.user }}","-d","{{ .Values.postgres.dbName }}"]}
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 4
         resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
       volumes:
       - name: postgres-storage
