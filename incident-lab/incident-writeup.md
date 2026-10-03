@@ -278,3 +278,67 @@ Summary table
 10	NetworkPolicy unenforced on local CNI	Security / platform limitation	Documented, deferred to EKS
 
 Recurring theme across 1, 2, 3, 8: every one of these traced back to either default timeouts/thresholds not being revisited for actual node capacity, or more than one manifest source for the same Kubernetes resource drifting independently. The fix pattern was consistent — identify the single source of truth, fix it there, verify via the actual sync/deploy path (not just the file on disk).
+
+
+Incident 11 — Memory ceiling masked by inconsistent reporting tools
+
+Symptom During a monitoring stack reinstall, kubectl top nodes consistently reported ~54% memory usage while docker stats on the same Minikube container showed 89–91%. Pod-level kubectl top pods summed to roughly 1.4GB across both monitoring and northstar namespaces — nowhere near either percentage, despite the node staying visibly under pressure (flat high memory, rising cumulative Block I/O, Grafana stuck in CreateContainerConfigError then later timing out on its startup probe).
+
+Investigation Compared the two reporting tools directly against the Minikube container's actual cgroup limit:
+
+bash
+kubectl top nodes
+docker stats --no-stream minikube
+kubectl top pods -n monitoring --sort-by=memory
+kubectl top pods -n northstar --sort-by=memory
+
+Root cause kubectl top nodes calculates its percentage against the memory capacity the Node object reports to the scheduler, which on Minikube's Docker driver can reflect the host/WSL VM's visible memory rather than the container's actual cgroup cap. docker stats enforces and reports against the real limit. The ~2.3–2.9GB gap between the sum of workload pods (kubectl top pods) and the real ceiling (docker stats) was the Kubernetes control plane itself (etcd, apiserver, controller-manager, scheduler, kubelet, containerd) plus ArgoCD's six pods plus ingress-nginx — none of which per-namespace kubectl top pods queries surface, since they live in kube-system/argocd.
+
+Fix Standardized on docker stats as the authoritative memory signal for this cluster going forward, since it was the only one of the three that stayed consistent with observed symptoms (slow boots, probe timeouts) throughout. Trimmed Prometheus retention (15d → 6h, retentionSize: 500MB) and disabled the Grafana dashboard-provisioning sidecar (sidecar.dashboards.enabled: false, not in use yet) to reduce real memory draw. When trimming alone wasn't sufficient, rebuilt the cluster with a larger ceiling:
+
+bash
+minikube delete
+minikube start --driver=docker --cpus=4 --memory=5120
+
+Verification Post-rebuild, docker stats showed memory settling at 79% with ~1GB of real headroom, versus 91% with ~350MB headroom pre-rebuild — a stable, repeatable improvement rather than a transient reading.
+
+Incident 12 — Grafana startup probe killed a healthy-but-slow boot
+
+Symptom Grafana pod stuck 0/2 through multiple reinstall attempts, event log showing:
+
+Warning  Unhealthy  (x25 over 5m1s)  Startup probe failed: connection refused
+Normal   Killing                     Container grafana failed startup probe, will be restarted
+
+The container never once responded on port 3000 during its startupProbe window before being killed — a different failure signature from every other probe-kill incident in this project (Incident 2), where the process was healthy but slow to respond. Here it was healthy but hadn't started listening at all yet.
+
+Investigation
+
+bash
+kubectl logs -n monitoring <grafana-pod> -c grafana
+
+The log showed no errors — clean progression through config load, SQLite migrations, encryption setup — but a revealing pace: 4 seconds between "Loading plugins..." and the first plugin registering, then ~15 seconds for that single plugin alone. Grafana's distroless image bundles a large set of built-in plugins registered sequentially at startup.
+
+Root cause At that pace, full plugin registration for all bundled plugins would exceed the configured startupProbe window (failureThreshold: 30 × periodSeconds: 5 = 150s, later 30 × 10s = 300s). This was compounded by the whole stack cold-booting simultaneously (confirmed by a 4x jump in cumulative Block I/O during the same window) — disk contention slowed an already disk-bound plugin-loading phase. Kubelet killed a process that was working correctly, just more slowly than the probe allowed for.
+
+Fix Raised startupProbe.failureThreshold to 60 at periodSeconds: 10 (10 minutes total tolerance), and restored Grafana's memory limit from an over-aggressive trim (256Mi → 384Mi) since the node now had real headroom to spend on a faster boot rather than starving it further:
+
+yaml
+grafana:
+  startupProbe:
+    httpGet: {path: /api/health, port: 3000}
+    failureThreshold: 60
+    periodSeconds: 10
+  resources:
+    limits: {cpu: 300m, memory: 384Mi}
+
+Verification Next reinstall reached 2/2 Running, Ready: True within the extended window, 0 restarts after settling. Confirmed Grafana was genuinely using the Secret-based admin credentials (Incident 9's pattern) rather than a stale chart-generated Secret:
+
+bash
+kubectl get secret grafana-admin-secret -n monitoring
+Known limitation — three control-plane ServiceMonitor targets unreachable
+
+Symptom Prometheus /targets shows kube-controller-manager, kube-etcd, and kube-scheduler as down, each with connect: connection refused against 192.168.49.2 on their respective ports.
+
+Root cause These control-plane components bind to 127.0.0.1 by default in Minikube's static pod configuration, not the node's externally-reachable IP that the default kube-prometheus-stack ServiceMonitors target. This is a Minikube packaging characteristic, not a configuration error in this project.
+
+Decision Not fixed. Editing Minikube's static pod manifests to change bind addresses is fragile and non-portable, and on EKS these are AWS-managed control-plane components not scraped directly in the same way. Documented as a known, accepted gap rather than chased — order-api, the actual application, scrapes successfully (2/2 up), which is the metric that matters for this project.
