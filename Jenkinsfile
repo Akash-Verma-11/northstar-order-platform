@@ -6,7 +6,9 @@ pipeline {
     SONAR_TOKEN  = credentials('sonar-token')
   }
 
-      stage('Test') {
+  stages { 
+
+    stage('Test') {
       steps {
         sh '''
           python3 -m venv .venv
@@ -109,7 +111,7 @@ pipeline {
         }
       }
     }
-  }
+  } // <--- THIS WAS THE BRACE THROWING THE ERROR (Because it had no opening brace)
 
   post {
     always {
