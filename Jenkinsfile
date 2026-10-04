@@ -13,7 +13,12 @@ pipeline {
 
     stage('Test') {
       steps {
-        sh 'python3 -m pip install -r backend/requirements.txt pytest && PYTHONPATH=backend pytest -q backend/tests'
+        sh '''
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -r backend/requirements.txt pytest
+          PYTHONPATH=backend pytest -q backend/tests
+        '''
       }
     }
 
