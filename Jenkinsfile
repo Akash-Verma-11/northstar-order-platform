@@ -6,12 +6,7 @@ pipeline {
     SONAR_TOKEN  = credentials('sonar-token')
   }
 
-  stages {
-    stage('Checkout') {
-      steps { checkout scm }
-    }
-
-    stage('Test') {
+      stage('Test') {
       steps {
         sh '''
           python3 -m venv .venv
