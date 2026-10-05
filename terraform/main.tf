@@ -30,17 +30,13 @@ module "eks" {
   enable_irsa = true
   enable_cluster_creator_admin_permissions = true
 
-  # Add this block to install the required networking and DNS plugins
-  cluster_addons = {
+  # Updated variable name for v21+
+  addons = {
     vpc-cni = {
-      most_recent = true
+      before_compute = true
     }
-    kube-proxy = {
-      most_recent = true
-    }
-    coredns = {
-      most_recent = true
-    }
+    kube-proxy = {}
+    coredns = {}
   }
 
   eks_managed_node_groups = {
