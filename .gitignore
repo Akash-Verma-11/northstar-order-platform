@@ -8,3 +8,10 @@ node_modules/
 dist/
 .vscode/
 .DS_Store
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/terraform.tfvars
+tfplan
+.terraform.tfstate.lock.info
+terraform/.terraform.lock.hcl

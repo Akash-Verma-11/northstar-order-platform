@@ -1,5 +1,6 @@
 data "aws_availability_zones" "available" { state = "available" }
 
+
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.5.1"
@@ -10,9 +11,11 @@ module "vpc" {
   public_subnets  = ["10.40.101.0/24","10.40.102.0/24","10.40.103.0/24"]
   database_subnets = ["10.40.201.0/24","10.40.202.0/24","10.40.203.0/24"]
   enable_nat_gateway = true
-  single_nat_gateway = false
+  single_nat_gateway = true                                         # Create 1 NATGW, if false=3 NATGW
   create_database_subnet_group = true
   enable_dns_hostnames = true
+  public_subnet_tags  = { "kubernetes.io/role/elb" = "1" }
+  private_subnet_tags = { "kubernetes.io/role/internal-elb" = "1" }
   tags = {Project = var.project, Environment = var.environment}
 }
 
@@ -25,12 +28,13 @@ module "eks" {
   vpc_id = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
   enable_irsa = true
+  enable_cluster_creator_admin_permissions = true
   eks_managed_node_groups = {
     general = {
-      instance_types = ["t3.large"]
-      min_size = 2
-      max_size = 6
-      desired_size = 2
+      instance_types = [var.node_instance_type]
+      min_size = var.node_min_size
+      max_size = var.node_max_size
+      desired_size = var.node_desired_size
     }
   }
   tags = {Project = var.project, Environment = var.environment}
