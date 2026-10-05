@@ -29,6 +29,20 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
   enable_irsa = true
   enable_cluster_creator_admin_permissions = true
+
+  # Add this block to install the required networking and DNS plugins
+  cluster_addons = {
+    vpc-cni = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+    coredns = {
+      most_recent = true
+    }
+  }
+
   eks_managed_node_groups = {
     general = {
       instance_types = [var.node_instance_type]
