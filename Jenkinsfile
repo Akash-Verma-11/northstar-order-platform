@@ -6,7 +6,7 @@ pipeline {
     SONAR_TOKEN  = credentials('sonar-token')
   }
 
-  stages { 
+  stages {
 
     stage('Test') {
       steps {
@@ -22,7 +22,7 @@ pipeline {
     stage('SonarQube') {
       steps {
         withSonarQubeEnv('SonarCloud') {
-          sh "${tool 'SonarScanner'}/bin/sonar-scanner"
+          sh "${tool 'SonarScanner'}/bin/sonar-scanner -Dsonar.scanner.skipJreProvisioning=true"
         }
       }
     }
@@ -55,7 +55,6 @@ pipeline {
 
     stage('Trivy FS Scan') {
       steps {
-        sh 'which trivy || (curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin)'
         sh 'trivy fs --severity HIGH,CRITICAL --exit-code 1 .'
       }
     }
@@ -96,8 +95,6 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
           sh '''
-            which yq || (sudo curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq)
-
             yq -i '.api.tag = "'"$BUILD_NUMBER"'"' helm/northstar/values.yaml
             yq -i '.worker.tag = "'"$BUILD_NUMBER"'"' helm/northstar/values.yaml
             yq -i '.frontend.tag = "'"$BUILD_NUMBER"'"' helm/northstar/values.yaml
@@ -111,7 +108,7 @@ pipeline {
         }
       }
     }
-  } // <--- THIS WAS THE BRACE THROWING THE ERROR (Because it had no opening brace)
+  }
 
   post {
     always {
