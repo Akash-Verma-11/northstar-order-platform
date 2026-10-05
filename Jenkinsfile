@@ -2,8 +2,11 @@ pipeline {
   agent { label 'custom-agent' }
 
   environment {
-    REPO_OWNER   = 'akash-verma-11'
-    SONAR_TOKEN  = credentials('sonar-token')
+    AWS_REGION     = 'ap-south-1'
+    AWS_ACCOUNT_ID = credentials('aws-account-id')     // Secret text
+    ECR_REGISTRY   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+    SONAR_TOKEN    = credentials('sonar-token')
+    GIT_REPO_URL   = 'https://github.com/akash-verma-11/northstar-order-platform.git'
   }
 
   stages {
@@ -22,7 +25,7 @@ pipeline {
     stage('SonarQube') {
       steps {
         withSonarQubeEnv('SonarCloud') {
-          sh "${tool 'SonarScanner'}/bin/sonar-scanner -Dsonar.scanner.skipJreProvisioning=true"
+          sh "${tool 'SonarScanner'}/bin/sonar-scanner"
         }
       }
     }
@@ -75,15 +78,19 @@ pipeline {
       }
     }
 
-    stage('Push to GHCR') {
+    stage('Push to ECR') {
       when { branch 'main' }
       steps {
-        withCredentials([usernamePassword(credentialsId: 'ghcr-token', usernameVariable: 'GHCR_USER', passwordVariable: 'GHCR_PASS')]) {
-          sh 'echo $GHCR_PASS | docker login ghcr.io -u $GHCR_USER --password-stdin'
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
           sh '''
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
             for svc in api worker frontend; do
-              docker tag northstar-$svc:$BUILD_NUMBER ghcr.io/${REPO_OWNER}/northstar-$svc:$BUILD_NUMBER
-              docker push ghcr.io/${REPO_OWNER}/northstar-$svc:$BUILD_NUMBER
+              aws ecr describe-repositories --repository-names northstar/$svc --region $AWS_REGION || \
+                aws ecr create-repository --repository-name northstar/$svc --region $AWS_REGION --image-scanning-configuration scanOnPush=true
+
+              docker tag northstar-$svc:$BUILD_NUMBER $ECR_REGISTRY/northstar/$svc:$BUILD_NUMBER
+              docker push $ECR_REGISTRY/northstar/$svc:$BUILD_NUMBER
             done
           '''
         }
@@ -95,8 +102,11 @@ pipeline {
       steps {
         withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
           sh '''
+            yq -i '.api.image = "'"$ECR_REGISTRY"'/northstar/api"' helm/northstar/values.yaml
             yq -i '.api.tag = "'"$BUILD_NUMBER"'"' helm/northstar/values.yaml
+            yq -i '.worker.image = "'"$ECR_REGISTRY"'/northstar/worker"' helm/northstar/values.yaml
             yq -i '.worker.tag = "'"$BUILD_NUMBER"'"' helm/northstar/values.yaml
+            yq -i '.frontend.image = "'"$ECR_REGISTRY"'/northstar/frontend"' helm/northstar/values.yaml
             yq -i '.frontend.tag = "'"$BUILD_NUMBER"'"' helm/northstar/values.yaml
 
             git config user.name "jenkins-bot"
@@ -112,7 +122,7 @@ pipeline {
 
   post {
     always {
-      sh 'docker logout ghcr.io || true'
+      sh 'docker logout $ECR_REGISTRY || true'
     }
   }
 }
