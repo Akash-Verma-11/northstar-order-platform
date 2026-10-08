@@ -1,17 +1,17 @@
 namespace: northstar
 api:
   image: ghcr.io/akash-verma-11/northstar-api
-  tag: "eddf7cd8776a825390353c68c2feb4bde7f27fb8"
+  tag: "4f9c3820be5dd0774e3bbab244741fdac18d8584"
   pullPolicy: IfNotPresent
   replicas: 2
 frontend:
   image: ghcr.io/akash-verma-11/northstar-frontend
-  tag: "eddf7cd8776a825390353c68c2feb4bde7f27fb8"
+  tag: "4f9c3820be5dd0774e3bbab244741fdac18d8584"
   pullPolicy: IfNotPresent
   replicas: 2
 worker:
   image: ghcr.io/akash-verma-11/northstar-worker
-  tag: "eddf7cd8776a825390353c68c2feb4bde7f27fb8"
+  tag: "4f9c3820be5dd0774e3bbab244741fdac18d8584"
   pullPolicy: IfNotPresent
   replicas: 2
 postgres:
