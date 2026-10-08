@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
-echo "Waiting for database..."
-until pg_isready -h postgres -p 5432 -U app > /dev/null 2>&1; do
+DB_HOST="${DB_HOST:-postgres}"
+DB_USER="${DB_USER:-app}"
+echo "Waiting for database at ${DB_HOST}:5432..."
+until pg_isready -h "$DB_HOST" -p 5432 -U "$DB_USER" > /dev/null 2>&1; do
   echo "Database not ready, waiting..."
   sleep 2
 done

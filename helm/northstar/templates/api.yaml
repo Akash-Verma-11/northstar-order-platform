@@ -20,8 +20,9 @@ spec:
         env:
         - {name: DB_USER, value: {{ .Values.postgres.user | quote }}}
         - {name: DB_NAME, value: {{ .Values.postgres.dbName | quote }}}
+        - {name: DB_HOST, value: {{ .Values.postgres.host | default "postgres" | quote }}}
         - {name: DB_PASSWORD, valueFrom: {secretKeyRef: {name: order-db-secret, key: password}}}
-        - {name: DATABASE_URL, value: "postgresql+psycopg://$(DB_USER):$(DB_PASSWORD)@postgres:5432/$(DB_NAME)"}
+        - {name: DATABASE_URL, value: "postgresql+psycopg://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):5432/$(DB_NAME)"}
         startupProbe:
           httpGet: {path: /api/health, port: 8080}
           failureThreshold: 30

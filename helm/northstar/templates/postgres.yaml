@@ -1,3 +1,4 @@
+{{- if not .Values.postgres.host }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -57,3 +58,4 @@ metadata:
 spec:
   selector: {app: postgres}
   ports: [{name: postgres, port: 5432, targetPort: 5432}]
+{{- end }}

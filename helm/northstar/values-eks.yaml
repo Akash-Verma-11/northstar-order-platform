@@ -1,0 +1,18 @@
+namespace: northstar
+
+postgres:
+  host: northstar-prod.cpuewqo624z3.ap-south-1.rds.amazonaws.com
+  user: app
+  dbName: orders
+  storageSize: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+ingress:
+  host: orders.local
+  className: nginx
+  local: true
