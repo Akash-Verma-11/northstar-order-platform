@@ -13,6 +13,6 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 
 ingress:
-  host: orders.local
-  className: nginx
-  local: true
+  albEnabled: true
+  className: alb
+  local: false
