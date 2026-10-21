@@ -71,8 +71,9 @@ module "eks" {
     vpc-cni = {
       before_compute = true # CNI must exist before nodes try to join
     }
-    kube-proxy = {}
-    coredns    = {}
+    kube-proxy     = {}
+    coredns        = {}
+    metrics-server = {}
     aws-ebs-csi-driver = {
       service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
     }
@@ -85,6 +86,16 @@ module "eks" {
       min_size           = var.node_min_size
       max_size           = var.node_max_size
       desired_size       = var.node_desired_size
+    }
+  }
+  node_security_group_additional_rules = {
+    metrics_server = {
+      description                   = "EKS control plane to Metrics Server"
+      protocol                      = "tcp"
+      from_port                     = 10251
+      to_port                       = 10251
+      type                          = "ingress"
+      source_cluster_security_group = true
     }
   }
 
