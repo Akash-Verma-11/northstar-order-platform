@@ -80,10 +80,11 @@ module "eks" {
 
   eks_managed_node_groups = {
     general = {
-      instance_types = [var.node_instance_type]
-      min_size       = var.node_min_size
-      max_size       = var.node_max_size
-      desired_size   = var.node_desired_size
+      kubernetes_version = "1.33"
+      instance_types     = [var.node_instance_type]
+      min_size           = var.node_min_size
+      max_size           = var.node_max_size
+      desired_size       = var.node_desired_size
     }
   }
 
