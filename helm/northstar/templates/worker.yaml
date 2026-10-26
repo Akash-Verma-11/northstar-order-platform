@@ -5,10 +5,22 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   replicas: {{ .Values.worker.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector: {matchLabels: {app: northstar-worker}}
   template:
     metadata: {labels: {app: northstar-worker}}
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: northstar-worker
       containers:
       - name: worker
         image: "{{ .Values.worker.image }}:{{ .Values.worker.tag }}"
@@ -20,7 +32,23 @@ spec:
         - {name: DB_PASSWORD, valueFrom: {secretKeyRef: {name: order-db-secret, key: password}}}
         - {name: DATABASE_URL, value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):5432/$(DB_NAME)"}
         livenessProbe:
-          exec: {command: ["pgrep", "-f", "worker.py"]}
+          exec:
+            command:
+              - python
+              - -c
+              - |
+                import os
+                import sys
+
+                try:
+                  with open("/proc/1/cmdline", "rb") as f:
+                    cmdline = f.read().replace(b"\x00", b" ").decode()
+                  if "worker.py" not in cmdline:
+                    sys.exit(1)
+                  os.kill(1, 0)
+                except (OSError, PermissionError):
+                  sys.exit(1)
+          initialDelaySeconds: 10
           periodSeconds: 15
           timeoutSeconds: 5
           failureThreshold: 3

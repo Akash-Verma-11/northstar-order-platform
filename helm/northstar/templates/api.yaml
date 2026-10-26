@@ -12,6 +12,13 @@ spec:
       labels: {app: northstar-api}
       annotations: {prometheus.io/scrape: "true", prometheus.io/path: "/metrics", prometheus.io/port: "8080"}
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: northstar-api
       containers:
       - name: api
         image: "{{ .Values.api.image }}:{{ .Values.api.tag }}"
