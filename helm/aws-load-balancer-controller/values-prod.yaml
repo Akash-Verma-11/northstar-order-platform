@@ -1,0 +1,12 @@
+clusterName: northstar-prod
+region: ap-south-1
+vpcId: vpc-0a355a88c9eb9a0dd
+
+replicaCount: 2
+
+serviceAccount:
+  create: false
+  name: aws-load-balancer-controller
+
+podDisruptionBudget:
+  maxUnavailable: 1
